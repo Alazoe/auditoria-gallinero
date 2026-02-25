@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría de Gallinero — Layer Signals</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c26;
+    --surface2: #1e2433;
+    --border: #2a3045;
+    --accent: #e8c547;
+    --accent2: #4ecdc4;
+    --accent3: #ff6b6b;
+    --text: #e8eaf0;
+    --muted: #6b7591;
+    --ok: #52d68a;
+    --warn: #ff6b6b;
+    --na: #6b7591;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 200px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .progress-pct {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  /* MAIN LAYOUT */
+  .app {
+    display: flex;
+    min-height: calc(100vh - 70px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 70px;
+    height: calc(100vh - 70px);
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 0 16px;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 0 4px;
+    margin-bottom: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); }
+  .nav-item.active {
+    background: rgba(232, 197, 71, 0.1);
+    border-color: rgba(232, 197, 71, 0.3);
+    color: var(--accent);
+  }
+
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-name { font-size: 12px; flex: 1; }
+  .nav-score {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--muted);
+    min-width: 28px;
+    text-align: center;
+  }
+  .nav-score.complete { background: rgba(82, 214, 138, 0.15); color: var(--ok); }
+
+  /* CONTENT */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    max-width: 900px;
+  }
+
+  /* FORM HEADER PANEL */
+  .form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+
+  .form-panel h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-field label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .form-field input, .form-field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+
+  .form-field input:focus, .form-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* SECTION */
+  .audit-section {
+    display: none;
+  }
+
+  .audit-section.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .section-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(232, 197, 71, 0.12);
+    border: 1px solid rgba(232, 197, 71, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .section-count {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* SUBSECTIONS */
+  .subsection {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .subsection-header {
+    padding: 14px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* CHECKLIST ITEMS */
+  .check-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+
+  .check-item.indent {
+    padding-left: 40px;
+    background: rgba(255,255,255,0.01);
+  }
+
+  .check-label {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+    padding-top: 6px;
+  }
+
+  .check-controls {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  /* TOGGLE BUTTONS */
+  .btn-check {
+    width: 36px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+
+  .btn-check:hover { border-color: var(--text); color: var(--text); }
+
+  .btn-check.ok.active {
+    background: rgba(82, 214, 138, 0.15);
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  .btn-check.no.active {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: var(--warn);
+    color: var(--warn);
+  }
+
+  .btn-check.na.active {
+    background: rgba(107, 117, 145, 0.15);
+    border-color: var(--na);
+    color: var(--na);
+  }
+
+  /* OBS INPUT */
+  .obs-toggle {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .obs-toggle:hover { border-color: var(--accent2); color: var(--accent2); }
+  .obs-toggle.has-text { border-color: var(--accent2); color: var(--accent2); background: rgba(78, 205, 196, 0.08); }
+
+  .obs-input-wrap {
+    display: none;
+    padding: 0 20px 12px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+  .obs-input-wrap.open { display: block; }
+  .obs-input-wrap:last-child { border-bottom: none; }
+
+  .obs-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    resize: vertical;
+    min-height: 56px;
+    transition: border-color 0.2s;
+  }
+  .obs-input:focus { outline: none; border-color: var(--accent2); }
+  .obs-input::placeholder { color: var(--muted); }
+
+  /* CATEGORY GROUP (non-checkbox items) */
+  .cat-item {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    letter-spacing: 0.5px;
+  }
+  .cat-item:last-child { border-bottom: none; }
+
+  /* NAV BOTTOM */
+  .nav-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f1117;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: #f0d060; transform: translateY(-1px); }
+
+  .btn-save {
+    background: var(--ok);
+    color: #0f1117;
+    font-weight: 700;
+  }
+  .btn-save:hover { background: #6de8a0; transform: translateY(-1px); }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 480px;
+    max-width: 90vw;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .modal p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .modal .form-field { margin-bottom: 14px; }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--ok);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    z-index: 2000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-color: var(--warn); }
+
+  /* SUMMARY */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+  }
+  .stat-num.ok { color: var(--ok); }
+  .stat-num.warn { color: var(--warn); }
+  .stat-num.na { color: var(--muted); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .section-score-list { margin-bottom: 24px; }
+  .score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .score-row:last-child { border-bottom: none; }
+  .score-name { font-size: 13px; }
+  .score-bar-wrap { flex: 1; margin: 0 16px; }
+  .score-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--ok);
+    transition: width 0.6s ease;
+  }
+  .score-pct-text { font-size: 12px; color: var(--muted); min-width: 36px; text-align: right; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { padding: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🐓</div>
+    <div>
+      <div class="logo-text">Layer Signals</div>
+      <div class="logo-sub">Auditoría de Gallinero</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="progress-wrap">
+      <span style="font-size:11px;color:var(--muted)">Avance</span>
+      <div class="progress-bar"><div class="progress-fill" id="globalProgress"></div></div>
+      <span class="progress-pct" id="globalPct">0%</span>
+    </div>
+    <button class="btn btn-save" onclick="openSaveModal()">💾 Guardar</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Secciones</div>
+      <div id="navItems"></div>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content" id="mainContent">
+    <!-- HEADER FORM -->
+    <div class="form-panel">
+      <h2>📋 Datos de la Visita</h2>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Productor</label>
+          <input type="text" id="f_productor" placeholder="Nombre del productor">
+        </div>
+        <div class="form-field">
+          <label>Instalación / Galpón</label>
+          <input type="text" id="f_galpon" placeholder="Nombre o código del galpón">
+        </div>
+        <div class="form-field">
+          <label>Fecha de visita</label>
+          <input type="date" id="f_fecha">
+        </div>
+        <div class="form-field" style="grid-column:1/-1">
+          <label>Observaciones generales</label>
+          <textarea id="f_obs_gen" rows="2" placeholder="Notas generales de la visita..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTIONS (populated by JS) -->
+    <div id="sectionsContainer"></div>
+  </main>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal">
+    <h3>💾 Guardar Auditoría</h3>
+    <p>Ingresa la URL de tu Google Apps Script para enviar los datos al Google Sheet. Si aún no tienes uno, sigue las instrucciones incluidas en el archivo.</p>
+    <div class="form-field">
+      <label>URL del Apps Script</label>
+      <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/..." style="width:100%">
+    </div>
+    <div class="form-field" style="margin-top:10px">
+      <label>¿Guardar URL para próximas visitas?</label>
+      <select id="saveUrl" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;">
+        <option value="1">Sí, guardar en este navegador</option>
+        <option value="0">No</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeSaveModal()">Cancelar</button>
+      <button class="btn btn-save" onclick="sendData()">📤 Enviar a Google Sheet</button>
+    </div>
+    <div style="margin-top:16px; padding:14px; background:var(--bg); border-radius:8px; border:1px solid var(--border)">
+      <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px">O descarga como JSON local</div>
+      <button class="btn btn-ghost" style="width:100%; justify-content:center;" onclick="downloadJSON()">⬇️ Descargar JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Datos enviados con éxito</span>
+</div>
+
+<script>
+// =====================================================
+// DATA: All checklist items from the Excel
+// Format: {id, section, subsection, label, isCategory, indent}
+// =====================================================
+
+const SECTIONS = [
+  {
+    id: 'bioseguridad',
+    name: 'Bioseguridad',
+    icon: '🧼',
+    items: [
+      {sub:'Limpieza y Desinfección', items:[
+        {l:'Galpón / Pabellón', cat:true},
+        {l:'Limpio', indent:true},
+        {l:'Desinfectado', indent:true},
+        {l:'Seco', indent:true},
+        {l:'Equipamiento', cat:true},
+        {l:'Limpio', indent:true},
+        {l:'Desinfectado', indent:true},
+        {l:'Seco', indent:true},
+        {l:'Evaluación', cat:true},
+        {l:'Revisión visual', indent:true},
+        {l:'Recuento bacteriano (placas de agar)', indent:true},
+        {l:'Tiempo de vacío sanitario suficiente', indent:true},
+      ]},
+      {sub:'Medidas de Bioseguridad', items:[
+        {l:'Acceso restringido al predio (puertas cerradas, cercos y señalética)'},
+        {l:'Registro de ingresos (formularios disponibles, historial de visitas)'},
+        {l:'Flujo interno definido (de aves jóvenes a adultas, de sanas a enfermas)'},
+        {l:'Protocolos claros y visibles para todos los visitantes'},
+        {l:'Pediluvios operativos (limpios y con desinfectante renovado)'},
+        {l:'Desinfección de camiones antes de ingresar al predio'},
+        {l:'Prohibido el ingreso de mascotas'},
+        {l:'Exclusa sanitaria (Hygiene lock)', cat:true},
+        {l:'Ropa exclusiva del predio', indent:true},
+        {l:'Jabón', indent:true},
+        {l:'Agua', indent:true},
+        {l:'Toallas disponibles', indent:true},
+      ]},
+      {sub:'Diseño del Predio (Layout)', items:[
+        {l:'Principio camino limpio / camino sucio definido'},
+        {l:'Exclusa sanitaria en el ingreso al predio'},
+        {l:'Exclusa sanitaria en el ingreso a los galpones'},
+        {l:'Instalaciones para higiene personal'},
+      ]},
+      {sub:'Control de Plagas', items:[
+        {l:'Prevención', indent:true},
+        {l:'Monitoreo', indent:true},
+        {l:'Erradicación (portacebos / trampas)', indent:true},
+        {l:'Accesos controlados', indent:true},
+        {l:'Fuentes de alimento aseguradas', indent:true},
+        {l:'Sin lugares de refugio', indent:true},
+      ]},
+      {sub:'Visitantes', items:[
+        {l:'Protocolos claros para personal'},
+        {l:'Protocolo para proveedor de alimento'},
+        {l:'Protocolo para médico veterinario'},
+        {l:'Protocolo para retiro de aves muertas'},
+        {l:'Protocolo para otros visitantes'},
+      ]},
+      {sub:'Origen del Plantel', items:[
+        {l:'Plantel de crianza libre de enfermedades'},
+        {l:'Programa de vacunación definido'},
+        {l:'Historial sanitario del plantel'},
+        {l:'Estado de higiene del predio de crianza'},
+      ]},
+      {sub:'Gestión de Riesgos', items:[
+        {l:'No existen otras aves en el predio'},
+        {l:'Ubicación del predio: sin aves acuáticas en el entorno'},
+        {l:'Ubicación del predio: no cercano a cuerpos de agua o bosque'},
+        {l:'Distancia adecuada a otros planteles avícolas'},
+      ]},
+    ]
+  },
+  {
+    id: 'alojamiento',
+    name: 'Alojamiento',
+    icon: '🏠',
+    items: [
+      {sub:'Sistema de Inspección', items:[
+        {l:'Frecuencia diaria de inspección'},
+        {l:'Durante la semana'},
+        {l:'Ocasionalmente'},
+        {l:'¿Problema crítico identificado?'},
+        {l:'¿Tiempo asignado para corregir?'},
+      ]},
+      {sub:'Inspección del Galpón', items:[
+        {l:'Revisar registros / datos'},
+        {l:'Ingresar al galpón'},
+        {l:'Recorrer el galpón (walk around)'},
+        {l:'Inspeccionar el lote'},
+        {l:'Inspeccionar aves individuales'},
+        {l:'Inspeccionar equipamiento'},
+      ]},
+      {sub:'Calidad del Aire', items:[
+        {l:'Humedad relativa adecuada'},
+        {l:'Corrientes de aire controladas'},
+        {l:'Sin zonas frías'},
+        {l:'Nivel de amoniaco aceptable'},
+        {l:'Polvo controlado'},
+        {l:'Presión negativa correcta'},
+        {l:'Movimiento de aire verificado (prueba de humo/cintas)'},
+        {l:'Sin zonas "muertas"'},
+      ]},
+      {sub:'Comederos', items:[
+        {l:'Silo con alimento correcto'},
+        {l:'Tolva llena, sin segregación'},
+        {l:'Comedero funcionando correctamente'},
+        {l:'Sin residuos de alimento con moho'},
+        {l:'Estructura del alimento en comedero adecuada'},
+        {l:'Consumo normal (indicador de funcionamiento)'},
+      ]},
+      {sub:'Bebederos', items:[
+        {l:'Campana: profundidad del agua correcta'},
+        {l:'Campana: sin derrames'},
+        {l:'Campana: limpieza adecuada'},
+        {l:'Campana: altura correcta del bebedero'},
+        {l:'Nipple: presión del agua correcta'},
+        {l:'Nipple: altura del nipple adecuada'},
+        {l:'Nipple: higiene de nipple/copa'},
+        {l:'Nipple: sin fugas'},
+        {l:'Temperatura del agua adecuada'},
+      ]},
+      {sub:'Iluminación', items:[
+        {l:'Duración del período de luz adecuada'},
+        {l:'Intensidad lumínica correcta'},
+        {l:'Color de luz apropiado'},
+        {l:'Sin parpadeo'},
+        {l:'Iluminación dinámica configurada'},
+        {l:'Iluminación nocturna según protocolo'},
+      ]},
+      {sub:'Sistema Libre Pastoreo (Free Range)', items:[
+        {l:'Área atractiva para las aves'},
+        {l:'Líneas / rutas de salida definidas'},
+        {l:'Área multifuncional'},
+        {l:'Refugios disponibles'},
+        {l:'Entrada limpia'},
+        {l:'Infraestructura contra depredadores aéreos'},
+        {l:'Cobertura vegetal / árboles'},
+        {l:'Bebederos adicionales en potrero'},
+      ]},
+      {sub:'Prevención de Estrés Calórico', items:[
+        {l:'Ventilación adecuada'},
+        {l:'Velocidad del aire suficiente'},
+        {l:'Sistema de enfriamiento funcionando'},
+        {l:'Agua fresca disponible'},
+        {l:'Alimentación nocturna según necesidad'},
+        {l:'Monitoreo: sin jadeo excesivo'},
+        {l:'Monitoreo: sin alas extendidas'},
+        {l:'Enriquecimiento ambiental disponible (fardos, granos dispersos)'},
+      ]},
+    ]
+  },
+  {
+    id: 'picaje',
+    name: 'Picaje',
+    icon: '🩺',
+    items: [
+      {sub:'Identificación del Problema', items:[
+        {l:'Se observan plumas arrancadas en el suelo'},
+        {l:'Se observan aves consumiendo plumas'},
+        {l:'Zonas corporales afectadas: dorso'},
+        {l:'Zonas corporales afectadas: base de la cola'},
+        {l:'Zonas corporales afectadas: cloaca (vent)'},
+        {l:'Zonas corporales afectadas: cuello/cabeza'},
+        {l:'Hay heridas abiertas o sangrado'},
+        {l:'Se han registrado muertes por canibalismo'},
+      ]},
+      {sub:'Magnitud del Problema', items:[
+        {l:'% estimado de aves afectadas anotado'},
+        {l:'Mortalidad semanal asociada registrada'},
+        {l:'El problema es focalizado (zonas específicas)'},
+        {l:'El problema es generalizado en el lote'},
+        {l:'El problema aumentó en últimas 2-4 semanas'},
+        {l:'Coincide con inicio de postura'},
+        {l:'Coincide con cambio de manejo/personal/clima'},
+      ]},
+      {sub:'Observación Directa de Conducta (15-20 min)', items:[
+        {l:'Se observa picaje activo'},
+        {l:'Aves picadas no huyen (indica instauración)'},
+        {l:'Aves hiperactivas / nerviosas'},
+        {l:'Vocalizaciones anormales'},
+        {l:'Amontonamiento en zonas específicas'},
+      ]},
+      {sub:'Manejo de Alimentación (Punto Crítico)', items:[
+        {l:'Alimentación mínimo 2 veces al día'},
+        {l:'Sin largos períodos sin alimento disponible'},
+        {l:'Sin competencia visible en comederos'},
+        {l:'La dieta incluye fibra funcional'},
+        {l:'Tamaño de partícula adecuado'},
+        {l:'Aporte correcto de Met + Cys'},
+        {l:'Se entrega forraje o material manipulable'},
+      ]},
+      {sub:'Evaluación del Potrero', items:[
+        {l:'Uso homogéneo del potrero'},
+        {l:'Aves explorando más allá del galpón'},
+        {l:'Existen refugios visuales (sombra, estructuras)'},
+        {l:'Distancia efectiva recorrida > 30-40 m'},
+        {l:'Potrero con pasto y estímulo exploratorio'},
+      ]},
+      {sub:'Densidad y Estructura Social', items:[
+        {l:'Densidad interior adecuada'},
+        {l:'Sin zonas de sobrepoblación'},
+        {l:'Acceso suficiente a nidos'},
+        {l:'Acceso suficiente a perchas'},
+        {l:'Acceso suficiente a bebederos'},
+        {l:'Sin mezcla reciente de aves'},
+        {l:'Sin diferencias marcadas de tamaño corporal'},
+      ]},
+      {sub:'Iluminación', items:[
+        {l:'Sin luz natural directa sobre nidos'},
+        {l:'Sin luz natural directa sobre portones'},
+        {l:'Sin contrastes fuertes luz-sombra'},
+        {l:'Intensidad interior no excesiva'},
+      ]},
+      {sub:'Salud y Factores Biológicos', items:[
+        {l:'Sin evidencia de parásitos internos'},
+        {l:'Sin evidencia de ectoparásitos'},
+        {l:'Plumaje en buen estado previo al brote'},
+        {l:'Estado corporal adecuado'},
+        {l:'Sin huevos excesivamente grandes en inicio de postura'},
+      ]},
+      {sub:'Medidas de Contención', items:[
+        {l:'Aislamiento de aves heridas'},
+        {l:'Retiro de aves iniciadoras de picaje'},
+        {l:'Enriquecimiento ambiental en uso'},
+        {l:'Ajustes en alimentación realizados'},
+        {l:'Ajustes de luz realizados'},
+      ]},
+    ]
+  },
+  {
+    id: 'rebano',
+    name: 'Rebaño',
+    icon: '🐔',
+    items: [
+      {sub:'Chequeo General de Salud', items:[
+        {l:'Ojos'},
+        {l:'Narinas'},
+        {l:'Pico'},
+        {l:'Cresta y barbillas'},
+        {l:'Buche'},
+        {l:'Cuello'},
+        {l:'Postura corporal'},
+        {l:'Espalda'},
+        {l:'Plumaje'},
+        {l:'Almohadillas plantares'},
+        {l:'Articulaciones'},
+        {l:'Quilla'},
+        {l:'Dedos'},
+        {l:'Cola'},
+        {l:'Abdomen'},
+        {l:'Cloaca'},
+        {l:'Excretas'},
+        {l:'Huesos pélvicos'},
+        {l:'Sonido respiratorio'},
+      ]},
+      {sub:'Desarrollo de Peso', items:[
+        {l:'Crecimiento constante hasta pico de producción'},
+        {l:'Frecuencia de pesaje adecuada'},
+        {l:'Número de aves pesadas suficiente'},
+        {l:'Condición corporal: no excesivamente delgada'},
+        {l:'Sin pérdida de peso después del pico'},
+      ]},
+      {sub:'Plumaje y Picaje', items:[
+        {l:'Alas en buen estado'},
+        {l:'Espalda en buen estado'},
+        {l:'Cuello en buen estado'},
+        {l:'Cola en buen estado'},
+        {l:'Pecho en buen estado'},
+        {l:'Sin plumas arrancadas en la cama'},
+        {l:'Sin heridas visibles por picaje'},
+        {l:'Sin desaparición del plumón'},
+      ]},
+      {sub:'Problemas en Patas y Dedos', items:[
+        {l:'Sin picaje de dedos'},
+        {l:'Sin patas secas o heridas'},
+        {l:'Sin pododermatitis (bumble foot)'},
+        {l:'Sin ulceraciones en almohadillas plantares'},
+      ]},
+      {sub:'Iluminación y Comportamiento', items:[
+        {l:'Relación luz-huevos en el suelo revisada'},
+        {l:'Relación luz-picaje revisada'},
+        {l:'Duración de luz suficiente para postura'},
+        {l:'Luz suficiente para comer y beber'},
+      ]},
+    ]
+  },
+  {
+    id: 'alimentacion',
+    name: 'Alimentación',
+    icon: '🌾',
+    items: [
+      {sub:'Estrategia de Alimentación', items:[
+        {l:'Cambios de alimento documentados'},
+        {l:'Forma del alimento adecuada (pellet o mash)'},
+        {l:'Alimentación por fases implementada'},
+        {l:'Sin desviaciones o contaminaciones'},
+        {l:'Sin segregación en silo o tolva'},
+        {l:'Técnica de vaciado de comederos correcta'},
+      ]},
+      {sub:'Formulación del Alimento', items:[
+        {l:'Energía correcta'},
+        {l:'Proteínas correctas'},
+        {l:'Aminoácidos esenciales correctos (lisina, metionina, triptófano)'},
+        {l:'Vitaminas correctas'},
+        {l:'Minerales correctos'},
+        {l:'Correcciones cuando se suministra grano en abundancia'},
+      ]},
+      {sub:'Calidad del Agua', items:[
+        {l:'Agua con olor y color adecuado'},
+        {l:'Sin sedimentos ni biofilm visible'},
+        {l:'Sin calcificación en líneas'},
+        {l:'Sin residuos de medicamentos'},
+        {l:'Flushing / lavado de líneas al día'},
+        {l:'Tratamiento de agua activo (peróxido, cloro o UV)'},
+      ]},
+      {sub:'Muestreo de Salmonella', items:[
+        {l:'Cubrecalzado disponible y en uso'},
+        {l:'Recorrido del galpón para muestreo'},
+        {l:'Muestras tomadas en bolsa estéril'},
+      ]},
+      {sub:'Vacunación via Agua de Bebida', items:[
+        {l:'Lavado de líneas previo a vacunación'},
+        {l:'Suministro de agua cerrado antes de vacunación'},
+        {l:'Vacuna preparada correctamente'},
+        {l:'Dosificación verificada'},
+        {l:'Verificación de resultados post-vacunación'},
+      ]},
+      {sub:'Excretas de las Aves', items:[
+        {l:'Excretas intestinales de consistencia normal'},
+        {l:'Excretas cecales normales'},
+        {l:'Sin excretas acuosas o espumosas'},
+        {l:'Sin color anormal (verde, naranja, sangre)'},
+        {l:'Sin partículas no digeridas'},
+      ]},
+    ]
+  },
+  {
+    id: 'produccion',
+    name: 'Producción',
+    icon: '📈',
+    items: [
+      {sub:'Fase de Recría', items:[
+        {l:'Revisión de todos los datos de recría'},
+        {l:'Mismo sistema de alojamiento que recría'},
+        {l:'Tipo y color de bebederos revisado'},
+        {l:'Consumo de alimento normal'},
+        {l:'Crecimiento adecuado'},
+        {l:'Programa de iluminación correcto'},
+        {l:'Uniformidad del lote adecuada'},
+        {l:'Vacunaciones al día'},
+        {l:'Mortalidad dentro de rangos normales'},
+      ]},
+      {sub:'Traslado (Transfer)', items:[
+        {l:'Datos de recría revisados'},
+        {l:'Estado inmunológico verificado'},
+        {l:'Número de aves entregadas correcto'},
+        {l:'Alimento y agua disponibles en galpón'},
+        {l:'Iluminación lista'},
+        {l:'Temperatura adecuada'},
+        {l:'Momento adecuado de traslado (timing)'},
+      ]},
+      {sub:'Chequeo de Bienvenida', items:[
+        {l:'Condición corporal adecuada'},
+        {l:'Estado de muda correcto'},
+        {l:'Desarrollo físico adecuado'},
+        {l:'Huesos pélvicos separados'},
+        {l:'Patas en buen estado'},
+        {l:'Uniformidad y comportamiento del lote normal'},
+      ]},
+      {sub:'Primeros Días Post-Traslado', items:[
+        {l:'Uso completo del sistema por las aves'},
+        {l:'Sin aves apáticas o asustadas'},
+        {l:'Consumo de alimento verificado'},
+        {l:'Consumo de agua verificado'},
+      ]},
+      {sub:'Manejo de la Cama', items:[
+        {l:'Material de cama adecuado'},
+        {l:'Sin zonas de cama húmeda'},
+        {l:'Rastrillado de cama al día'},
+        {l:'Acceso a pastoreo libre'},
+        {l:'Ventilación sin zonas frías'},
+      ]},
+      {sub:'Ácaro Rojo', items:[
+        {l:'Revisión en lugares específicos'},
+        {l:'Comportamiento de aves sin indicios de ácaros'},
+        {l:'Trampas para ácaros instaladas'},
+        {l:'Baños de polvo disponibles'},
+        {l:'Limpieza antes del nuevo lote realizada'},
+        {l:'Tratamiento activo si se detectó infestación'},
+      ]},
+    ]
+  },
+  {
+    id: 'calidad_huevo',
+    name: 'Calidad de Huevo',
+    icon: '🥚',
+    items: [
+      {sub:'Listas para Postura', items:[
+        {l:'Peso adecuado al inicio de postura'},
+        {l:'Edad adecuada'},
+        {l:'Huesos pélvicos separados'},
+        {l:'Abdomen blando y amplio'},
+        {l:'Cloaca húmeda y dilatada'},
+        {l:'Cresta desarrollada y roja'},
+      ]},
+      {sub:'Nidos de Postura', items:[
+        {l:'Alfombrillas no desgastadas'},
+        {l:'Alfombrillas limpias'},
+        {l:'Sistema de nidos funcionando correctamente'},
+        {l:'Huevos rodando adecuadamente'},
+      ]},
+      {sub:'Huevos de Piso', items:[
+        {l:'Nidos de postura atractivos para las aves'},
+        {l:'Nidos oscuros'},
+        {l:'Nidos cerrados durante la noche'},
+        {l:'Agua disponible en la entrada del nido'},
+        {l:'Recolección varias veces al día'},
+        {l:'Cantidad suficiente de nidos'},
+        {l:'Cama poco atractiva para postura'},
+      ]},
+      {sub:'Huevos Quebrados o Fisurados', items:[
+        {l:'¿Fisurados o rotos? (revisar causa)'},
+        {l:'¿Aves jóvenes o viejas?'},
+        {l:'¿Dentro del ave o posterior a la postura?'},
+        {l:'¿En la punta o costado del huevo?'},
+        {l:'¿Causado por el sistema?'},
+        {l:'¿Causado por el ave?'},
+      ]},
+      {sub:'Huevos Sucios', items:[
+        {l:'Sin huevos de piso sucios'},
+        {l:'Sin contaminación por guano'},
+        {l:'Sin contenido de huevo (sangre, orina, uratos)'},
+        {l:'Sin ácaros rojos en huevos'},
+      ]},
+      {sub:'Cáscara del Huevo', items:[
+        {l:'Sin tipo lija (superficie rugosa)'},
+        {l:'Sin granitos / pústulas'},
+        {l:'Sin punta vítrea'},
+        {l:'Sin huevo "granny" (IB)'},
+        {l:'Sin protuberancias'},
+        {l:'Sin fisuras (craquelado)'},
+        {l:'Sin depósitos de calcio'},
+        {l:'Sin deformaciones'},
+      ]},
+      {sub:'Yema del Huevo', items:[
+        {l:'Color de yema adecuado'},
+        {l:'Sin yema con sangre'},
+        {l:'Sin puntos de sangre o carne'},
+        {l:'Sin yema verde o vítrea'},
+      ]},
+      {sub:'Color de la Cáscara', items:[
+        {l:'Color natural adecuado'},
+        {l:'Pigmentación uniforme'},
+        {l:'Sin huevos lilas'},
+      ]},
+      {sub:'Producción y Curva de Postura', items:[
+        {l:'Sin disminución general de producción'},
+        {l:'Sin caída temporal'},
+        {l:'Persistencia de postura adecuada'},
+        {l:'Sin indicios de enfermedad infecciosa'},
+        {l:'Composición del alimento revisada'},
+      ]},
+    ]
+  },
+  {
+    id: 'salud_aves',
+    name: 'Salud de Aves',
+    icon: '🦠',
+    items: [
+      {sub:'Órganos Reproductivos', items:[
+        {l:'Ovario normal'},
+        {l:'Infundíbulo normal'},
+        {l:'Magnum normal'},
+        {l:'Istmo normal'},
+        {l:'Útero normal'},
+        {l:'Vagina normal'},
+      ]},
+      {sub:'Eutanasia en el Predio', items:[
+        {l:'Criterios de eutanasia claros y aplicados'},
+        {l:'Método adecuado disponible'},
+        {l:'Confirmación de muerte verificada'},
+        {l:'Registro de aves eutanasiadas'},
+      ]},
+      {sub:'Deformación de la Quilla', items:[
+        {l:'Sin fracturas de quilla'},
+        {l:'Sin deformaciones de quilla'},
+        {l:'Causas identificadas si hay hallazgos'},
+      ]},
+      {sub:'Parásitos Internos', items:[
+        {l:'Sin signos de emaciación por parásitos'},
+        {l:'Sin crestas pálidas y secas'},
+        {l:'Conteo de EPG (huevos por gramo) al día'},
+        {l:'Programa de desparasitación activo'},
+        {l:'Higiene y manejo de cama adecuados'},
+      ]},
+      {sub:'Condición Hepática (FLHS)', items:[
+        {l:'Color de hígado normal (no pálido)'},
+        {l:'Sin signos de hígado graso'},
+        {l:'Factores de riesgo nutricionales controlados'},
+        {l:'Factores de riesgo ambientales controlados'},
+      ]},
+      {sub:'Color de la Cresta', items:[
+        {l:'Cresta roja y turgente'},
+        {l:'Sin palidez (anemia)'},
+        {l:'Sin coloración azul/púrpura'},
+        {l:'Sin costras o lesiones en cresta'},
+      ]},
+      {sub:'Necropsia', items:[
+        {l:'Sistema digestivo evaluado'},
+        {l:'Sistema respiratorio evaluado'},
+        {l:'Sistema reproductivo evaluado'},
+        {l:'Órganos esenciales (hígado, riñones, corazón) evaluados'},
+      ]},
+      {sub:'Enfermedades y Vacunación', items:[
+        {l:'Signos clínicos documentados si corresponde'},
+        {l:'Diagnóstico establecido'},
+        {l:'Tratamiento aplicado según protocolo'},
+        {l:'Tipo de vacuna correcto'},
+        {l:'Método de administración correcto'},
+        {l:'Programa de vacunación al día'},
+        {l:'Verificación de resultados post-vacunación'},
+      ]},
+    ]
+  },
+];
+
+// =====================================================
+// STATE
+// =====================================================
+const state = {
+  answers: {}, // itemId -> 'ok' | 'no' | 'na' | null
+  obs: {},     // itemId -> string
+  currentSection: 0,
+};
+
+// Build item ID
+function itemId(sIdx, subIdx, iIdx) {
+  return `s${sIdx}_b${subIdx}_i${iIdx}`;
+}
+
+// =====================================================
+// RENDER
+// =====================================================
+function buildUI() {
+  buildNav();
+  buildSections();
+  setSection(0);
+  // Default date
+  document.getElementById('f_fecha').value = new Date().toISOString().split('T')[0];
+  // Load saved script URL
+  const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbxi-0OGbZrK03HI3GgV2kPjgEdjNt5f8Lo1QfvmdPOihCm7zfd5UdHcZtqO2SxcLZSixQ/exec';
+  const saved = localStorage.getItem('layersig_scripturl') || DEFAULT_URL;
+  document.getElementById('scriptUrl').value = saved;
+}
+
+function buildNav() {
+  const container = document.getElementById('navItems');
+  container.innerHTML = '';
+  SECTIONS.forEach((sec, i) => {
+    const div = document.createElement('div');
+    div.className = 'nav-item' + (i === 0 ? ' active' : '');
+    div.id = 'nav_' + i;
+    div.onclick = () => setSection(i);
+    div.innerHTML = `
+      <span class="nav-icon">${sec.icon}</span>
+      <span class="nav-name">${sec.name}</span>
+      <span class="nav-score" id="navscore_${i}">—</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function buildSections() {
+  const container = document.getElementById('sectionsContainer');
+  container.innerHTML = '';
+
+  SECTIONS.forEach((sec, sIdx) => {
+    const section = document.createElement('div');
+    section.className = 'audit-section';
+    section.id = 'section_' + sIdx;
+
+    let html = `
+      <div class="section-header">
+        <div class="section-icon">${sec.icon}</div>
+        <div>
+          <div class="section-title">${sec.name}</div>
+          <div class="section-count" id="seccount_${sIdx}">— ítems evaluados</div>
+        </div>
+      </div>
+    `;
+
+    sec.items.forEach((block, bIdx) => {
+      html += `<div class="subsection">
+        <div class="subsection-header">${block.sub}</div>`;
+
+      block.items.forEach((item, iIdx) => {
+        const id = itemId(sIdx, bIdx, iIdx);
+        if (item.cat) {
+          html += `<div class="cat-item${item.indent ? ' indent' : ''}" style="padding-left:${item.indent?'40':'20'}px">${item.l}</div>`;
+        } else {
+          html += `
+          <div class="check-item${item.indent ? ' indent' : ''}" id="row_${id}">
+            <div class="check-label">${item.l}</div>
+            <div class="check-controls">
+              <button class="btn-check ok" title="Cumple" onclick="setAnswer('${id}','ok',this)">✓</button>
+              <button class="btn-check no" title="No cumple" onclick="setAnswer('${id}','no',this)">✗</button>
+              <button class="btn-check na" title="No aplica" onclick="setAnswer('${id}','na',this)">N/A</button>
+              <button class="obs-toggle" title="Agregar observación" id="obstgl_${id}" onclick="toggleObs('${id}')">💬</button>
+            </div>
+          </div>
+          <div class="obs-input-wrap" id="obswrap_${id}">
+            <textarea class="obs-input" id="obsinput_${id}" placeholder="Observación / nota..." 
+              oninput="saveObs('${id}',this.value)"></textarea>
+          </div>`;
+        }
+      });
+
+      html += `</div>`;
+    });
+
+    // Nav buttons
+    html += `<div class="nav-bottom">
+      <button class="btn btn-ghost" onclick="prevSection()" ${sIdx === 0 ? 'disabled' : ''}>← Anterior</button>
+      <button class="btn btn-ghost" onclick="openSaveModal()" style="color:var(--accent2);border-color:var(--accent2)">💾 Guardar</button>
+      <button class="btn btn-primary" onclick="nextSection()" ${sIdx === SECTIONS.length-1 ? '' : ''}>
+        ${sIdx === SECTIONS.length-1 ? '📊 Ver Resumen' : 'Siguiente →'}
+      </button>
+    </div>`;
+
+    section.innerHTML = html;
+    container.appendChild(section);
+  });
+
+  // Add summary section
+  const summary = document.createElement('div');
+  summary.className = 'audit-section';
+  summary.id = 'section_summary';
+  summary.innerHTML = `
+    <div class="section-header">
+      <div class="section-icon">📊</div>
+      <div>
+        <div class="section-title">Resumen de Auditoría</div>
+        <div class="section-count">Resultados generales</div>
+      </div>
+    </div>
+    <div class="summary-grid" id="summaryStats"></div>
+    <div class="section-score-list" id="summaryScores"></div>
+    <div class="nav-bottom">
+      <button class="btn btn-ghost" onclick="setSection(SECTIONS.length-1)">← Volver</button>
+      <button class="btn btn-save" onclick="openSaveModal()">💾 Guardar en Google Sheets</button>
+    </div>
+  `;
+  container.appendChild(summary);
+}
+
+function setSection(idx) {
+  // Hide all
+  document.querySelectorAll('.audit-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+  if (idx === 'summary') {
+    document.getElementById('section_summary').classList.add('active');
+    buildSummary();
+    return;
+  }
+
+  state.currentSection = idx;
+  document.getElementById('section_' + idx).classList.add('active');
+  document.getElementById('nav_' + idx).classList.add('active');
+
+  // Scroll to top
+  document.querySelector('.content').scrollTo({top: 0, behavior:'smooth'});
+  updateProgress();
+}
+
+function nextSection() {
+  if (state.currentSection >= SECTIONS.length - 1) {
+    setSection('summary');
+  } else {
+    setSection(state.currentSection + 1);
+  }
+}
+
+function prevSection() {
+  if (state.currentSection > 0) {
+    setSection(state.currentSection - 1);
+  }
+}
+
+// =====================================================
+// ANSWERS
+// =====================================================
+function setAnswer(id, val, btn) {
+  const current = state.answers[id];
+  if (current === val) {
+    // Deselect
+    state.answers[id] = null;
+    btn.closest('.check-item').querySelectorAll('.btn-check').forEach(b => b.classList.remove('active'));
+  } else {
+    state.answers[id] = val;
+    btn.closest('.check-item').querySelectorAll('.btn-check').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  updateSectionScore();
+  updateProgress();
+}
+
+function toggleObs(id) {
+  const wrap = document.getElementById('obswrap_' + id);
+  const tgl = document.getElementById('obstgl_' + id);
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    document.getElementById('obsinput_' + id).focus();
+  }
+}
+
+function saveObs(id, val) {
+  state.obs[id] = val;
+  const tgl = document.getElementById('obstgl_' + id);
+  if (val.trim()) tgl.classList.add('has-text');
+  else tgl.classList.remove('has-text');
+}
+
+// =====================================================
+// SCORES
+// =====================================================
+function getItemsForSection(sIdx) {
+  const items = [];
+  const sec = SECTIONS[sIdx];
+  sec.items.forEach((block, bIdx) => {
+    block.items.forEach((item, iIdx) => {
+      if (!item.cat) {
+        items.push(itemId(sIdx, bIdx, iIdx));
+      }
+    });
+  });
+  return items;
+}
+
+function getSectionStats(sIdx) {
+  const ids = getItemsForSection(sIdx);
+  let ok = 0, no = 0, na = 0, unanswered = 0;
+  ids.forEach(id => {
+    const a = state.answers[id];
+    if (a === 'ok') ok++;
+    else if (a === 'no') no++;
+    else if (a === 'na') na++;
+    else unanswered++;
+  });
+  return { total: ids.length, ok, no, na, unanswered };
+}
+
+function updateSectionScore() {
+  SECTIONS.forEach((_, sIdx) => {
+    const stats = getSectionStats(sIdx);
+    const answered = stats.ok + stats.no + stats.na;
+    const scoreEl = document.getElementById('navscore_' + sIdx);
+    const countEl = document.getElementById('seccount_' + sIdx);
+    if (scoreEl) {
+      if (answered === stats.total) {
+        const pct = stats.total > 0 ? Math.round((stats.ok / (stats.ok + stats.no)) * 100) : 100;
+        scoreEl.textContent = pct + '%';
+        scoreEl.className = 'nav-score complete';
+      } else {
+        scoreEl.textContent = answered + '/' + stats.total;
+        scoreEl.className = 'nav-score';
+      }
+    }
+    if (countEl) {
+      countEl.textContent = `${answered} de ${stats.total} ítems evaluados`;
+    }
+  });
+}
+
+function updateProgress() {
+  let total = 0, answered = 0;
+  SECTIONS.forEach((_, sIdx) => {
+    const stats = getSectionStats(sIdx);
+    total += stats.total;
+    answered += stats.ok + stats.no + stats.na;
+  });
+  const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+  document.getElementById('globalProgress').style.width = pct + '%';
+  document.getElementById('globalPct').textContent = pct + '%';
+  updateSectionScore();
+}
+
+function buildSummary() {
+  let totalOk = 0, totalNo = 0, totalNa = 0, totalU = 0;
+  const scoresHtml = SECTIONS.map((sec, sIdx) => {
+    const s = getSectionStats(sIdx);
+    totalOk += s.ok; totalNo += s.no; totalNa += s.na; totalU += s.unanswered;
+    const applicable = s.ok + s.no;
+    const pct = applicable > 0 ? Math.round((s.ok / applicable) * 100) : 0;
+    return `<div class="score-row">
+      <span class="score-name">${sec.icon} ${sec.name}</span>
+      <div class="score-bar-wrap"><div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div></div>
+      <span class="score-pct-text">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  const globalApplicable = totalOk + totalNo;
+  const globalPct = globalApplicable > 0 ? Math.round((totalOk / globalApplicable) * 100) : 0;
+
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num ok">${totalOk}</div><div class="stat-label">✅ Cumple</div></div>
+    <div class="stat-card"><div class="stat-num warn">${totalNo}</div><div class="stat-label">❌ No cumple</div></div>
+    <div class="stat-card"><div class="stat-num na">${totalNa}</div><div class="stat-label">➖ No aplica</div></div>
+    <div class="stat-card" style="grid-column:1/-1"><div class="stat-num" style="color:var(--accent)">${globalPct}%</div><div class="stat-label">Cumplimiento global (sin N/A)</div></div>
+  `;
+
+  document.getElementById('summaryScores').innerHTML = `
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:14px">Cumplimiento por sección</div>
+    ${scoresHtml}
+  `;
+}
+
+// =====================================================
+// EXPORT / SAVE
+// =====================================================
+function collectData() {
+  const data = {
+    metadata: {
+      productor: document.getElementById('f_productor').value,
+      galpon: document.getElementById('f_galpon').value,
+      fecha: document.getElementById('f_fecha').value,
+      obs_generales: document.getElementById('f_obs_gen').value,
+      timestamp: new Date().toISOString(),
+    },
+    sections: {},
+    flat_rows: [],
+  };
+
+  SECTIONS.forEach((sec, sIdx) => {
+    const secData = [];
+    sec.items.forEach((block, bIdx) => {
+      block.items.forEach((item, iIdx) => {
+        if (!item.cat) {
+          const id = itemId(sIdx, bIdx, iIdx);
+          const row = {
+            seccion: sec.name,
+            subseccion: block.sub,
+            item: item.l,
+            respuesta: state.answers[id] || '',
+            observacion: state.obs[id] || '',
+          };
+          secData.push(row);
+          data.flat_rows.push({
+            productor: data.metadata.productor,
+            galpon: data.metadata.galpon,
+            fecha: data.metadata.fecha,
+            ...row
+          });
+        }
+      });
+    });
+    data.sections[sec.id] = secData;
+  });
+
+  return data;
+}
+
+function downloadJSON() {
+  const data = collectData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `auditoria_${data.metadata.productor || 'sin_nombre'}_${data.metadata.fecha || 'sin_fecha'}.json`;
+  a.click();
+  showToast('JSON descargado', '⬇️');
+}
+
+async function sendData() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  if (!url) {
+    showToast('Ingresa la URL del Apps Script', '⚠️', true);
+    return;
+  }
+
+  if (document.getElementById('saveUrl').value === '1') {
+    localStorage.setItem('layersig_scripturl', url);
+  }
+
+  const data = collectData();
+
+  const btn = document.querySelector('.modal .btn-save');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    showToast('Datos enviados al Google Sheet', '✅');
+    closeSaveModal();
+  } catch (e) {
+    showToast('Error de conexión. Verifica la URL.', '❌', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Enviar a Google Sheet';
+  }
+}
+
+function openSaveModal() {
+  document.getElementById('saveModal').classList.add('open');
+}
+function closeSaveModal() {
+  document.getElementById('saveModal').classList.remove('open');
+}
+
+function showToast(msg, icon='✅', isError=false) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = icon;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// Close modal on overlay click
+document.getElementById('saveModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSaveModal();
+});
+
+// =====================================================
+// INIT
+// =====================================================
+buildUI();
+</script>
+
+<!-- INSTRUCCIONES APPS SCRIPT (ocultas en un comentario para el usuario) -->
+<!--
+=== CÓMO CONECTAR CON GOOGLE SHEETS ===
+
+1. Ve a https://script.google.com y crea un nuevo proyecto
+
+2. Reemplaza el código por este:
+
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.openById('TU_SPREADSHEET_ID_AQUI').getSheetByName('Auditorias') 
+      || SpreadsheetApp.openById('TU_SPREADSHEET_ID_AQUI').insertSheet('Auditorias');
+    
+    var data = JSON.parse(e.postData.contents);
+    var rows = data.flat_rows;
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Productor','Galpón','Fecha','Auditor','Sección','Subsección','Ítem','Respuesta','Observación']);
+    }
+    
+    rows.forEach(function(row) {
+      sheet.appendRow([
+        row.productor, row.galpon, row.fecha, row.auditor,
+        row.seccion, row.subseccion, row.item,
+        row.respuesta, row.observacion
+      ]);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({status:'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status:'error',msg:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+3. Despliega como Web App:
+   - Ejecutar como: "Yo"
+   - Quién tiene acceso: "Cualquier persona"
+   - Copia la URL generada
+
+4. Pega esa URL en la aplicación al guardar.
+
+5. Crea tu Google Sheet con el ID correcto (está en la URL del Sheet)
+-->
+</body>
+</html>
